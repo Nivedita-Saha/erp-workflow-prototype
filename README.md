@@ -1,6 +1,25 @@
 # ERP Workflow Extension Prototype
 
-> **A lightweight, form-driven ERP module** simulating the screen logic, business rule validation, and workflow triggers found in systems like EFACS (Exel). Built as a portfolio demonstration of ERP extension development patterns for a manufacturing/engineering context.
+> **A lightweight, form-driven ERP module** simulating the screen logic, business rule validation, and workflow triggers found in systems like EFACS (Exel). Built as a portfolio demonstration of ERP extension development patterns for a precision engineering / manufacturing context.
+
+![Dashboard](erp_workflow_extension_prototype.png)
+
+---
+
+## Screenshots
+
+| | |
+|---|---|
+| ![Dashboard](erp_workflow_extension.png) | ![Purchase Orders](purchase_order.png) |
+| **Dashboard — KPI stats & audit log** | **Purchase Order list with status workflow** |
+| ![New PO](new_po.png) | ![SQL Reports](sql_reports.png) |
+| **New PO — dynamic line items & live approval flag** | **SQL Reports — BIRT-style aggregated datasets** |
+| ![Stock & Parts](stock_parts_register.png) | ![Stock Reservations](stock%20reservations.png) |
+| **Stock & Parts Register — live availability check** | **Stock Reservations — active holds against qty** |
+| ![Invoice Register](invoice_register.png) | ![Log Invoice](log_supplier_invoice.png) |
+| **Invoice Register — 3-way match validation** | **Log Invoice — live match preview before save** |
+| ![Suppliers](Supplier_register.png) | ![New Supplier](new_supplier.png) |
+| **Supplier Register — status lifecycle management** | **New Supplier — validated form with unique code** |
 
 ---
 
@@ -39,16 +58,15 @@ This prototype replicates the kind of work done when extending a vendor ERP syst
 - Approval workflow for validated invoices
 
 ### 5. SQL Reporting (BIRT-Style)
-- Procurement spend by supplier (aggregation with `COUNT`, `SUM`, `AVG`)
+- Procurement spend by supplier (`COUNT`, `SUM`, `AVG` aggregations)
 - Purchase order status summary
 - Invoice aging report (using `julianday()` to simulate SQL Server `DATEDIFF`)
 - Stock health report with `CASE` expression for status classification
 - SQL shown inline below each table — mirrors BIRT dataset transparency
 
 ### 6. Workflow Audit Log
-- Every state change (create, submit, approve, reject, reserve, cancel) written to `workflow_log`
-- Immutable record: entity type, entity ID, action, user, timestamp, and note
-- Displayed on dashboard and on individual PO detail views
+- Every state change written to `workflow_log` — immutable record of entity, action, user, timestamp, and note
+- Displayed on dashboard and individual PO detail views
 
 ---
 
@@ -56,13 +74,13 @@ This prototype replicates the kind of work done when extending a vendor ERP syst
 
 | Pattern | Where Demonstrated |
 |---|---|
-| Custom screen with form logic | PO form (dynamic line items, live total, approval flag) |
+| Custom screen with form logic | PO form — dynamic line items, live total, approval flag |
 | Business rule enforcement | PO threshold, stock availability check, 3-way match |
-| Workflow state machine | PO lifecycle (DRAFT → APPROVED/REJECTED) |
-| Role-based action gating | Approval buttons shown/hidden by user role |
-| Audit trail / event log | `workflow_log` table, surfaced on dashboard and detail views |
+| Workflow state machine | PO lifecycle: DRAFT → APPROVED / REJECTED |
+| Role-based action gating | Approval buttons shown/hidden by user role and status |
+| Audit trail / event log | `workflow_log` table on dashboard and PO detail views |
 | SQL aggregation reporting | Reports page — spend, status summary, aging, stock health |
-| Vendor extension without core modification | All logic in application layer; schema is additive |
+| Vendor extension without core modification | All logic in application layer; schema is purely additive |
 | Lead time / supplier data surfaced in UI | Supplier lead days shown as hint in PO form |
 
 ---
@@ -73,7 +91,7 @@ This prototype replicates the kind of work done when extending a vendor ERP syst
 suppliers       → code, name, contact, status, lead_days
 parts           → part_number, qty_on_hand, qty_reserved, reorder_point
 purchase_orders → po_number, supplier_id, status, total_value, approval fields
-po_lines        → po_id, part_id, qty_ordered, unit_price, line_total (generated)
+po_lines        → po_id, part_id, qty_ordered, unit_price, line_total (generated column)
 reservations    → part_id, qty_reserved, reserved_for, status
 invoices        → invoice_number, po_id, amount, status, validation_note
 workflow_log    → entity_type, entity_id, action, performed_by, note, logged_at
@@ -84,16 +102,14 @@ workflow_log    → entity_type, entity_id, action, performed_by, note, logged_a
 ## Getting Started
 
 ```bash
-# Clone and install
 git clone https://github.com/Nivedita-Saha/erp-workflow-prototype.git
 cd erp-workflow-prototype
-pip install -r requirements.txt
-
-# Run (database auto-initialises with seed data on first run)
+pip install flask
+mkdir -p instance
 python app.py
 ```
 
-Open `http://localhost:5050` — select a demo user to log in:
+Open `http://localhost:5050` and select a demo user:
 
 | Username | Role | Can Approve? |
 |---|---|---|
@@ -107,28 +123,18 @@ Open `http://localhost:5050` — select a demo user to log in:
 
 ```
 erp-workflow-prototype/
-├── app.py                  # Flask app, routes, business logic
-├── schema.sql              # DB schema + seed data
+├── app.py                  # Flask app — routes, business logic, workflow rules
+├── schema.sql              # DB schema + seed data (4 suppliers, 7 precision parts)
 ├── requirements.txt
-├── instance/
-│   └── erp.db              # SQLite DB (auto-created)
-├── templates/
-│   ├── base.html           # Sidebar layout
-│   ├── login.html
+├── templates/              # Jinja2 templates — one per ERP screen
+│   ├── base.html           # Sidebar navigation layout
 │   ├── dashboard.html      # KPI stats + audit log
-│   ├── po_list.html        # Purchase order list
-│   ├── po_form.html        # PO creation with line item builder
+│   ├── po_form.html        # PO creation with dynamic line item builder
 │   ├── po_detail.html      # PO view + approval panel
-│   ├── stock.html          # Parts register
-│   ├── reserve_form.html   # Stock reservation
-│   ├── reservations.html   # Active reservations
-│   ├── suppliers.html      # Supplier register
-│   ├── supplier_form.html  # New supplier
-│   ├── invoices.html       # Invoice register
-│   ├── invoice_form.html   # Log invoice + 3-way match preview
-│   └── reports.html        # SQL reports dashboard
+│   ├── reports.html        # SQL reports dashboard
+│   └── ...
 └── static/
-    ├── css/style.css
+    ├── css/style.css       # Industrial-utilitarian design (IBM Plex, dark theme)
     └── js/main.js
 ```
 
@@ -136,13 +142,15 @@ erp-workflow-prototype/
 
 ## Relevance to EFACS / ERP Development
 
-This prototype is designed to demonstrate understanding of:
-
-- **EFACS screen extensions** — form logic, field validation, conditional UI (approval panel shown/hidden by role and status)
-- **BIRT report development** — each report table shows the underlying SQL, uses aggregations, CTEs, and CASE expressions
-- **Workflow triggers** — state transitions fire audit log entries, mirror EFACS workflow configuration
-- **SQL Server patterns** — queries use joins, aggregations, CASE expressions, and date arithmetic consistent with SQL Server syntax
-- **Extending without modifying core** — all logic sits in the application/extension layer; the schema only adds tables
+| JD Requirement | Demonstrated By |
+|---|---|
+| Custom EFACS screens, buttons, form logic | PO form with live JS logic, conditional approval panel |
+| Business rule enforcement | Auto-approval threshold, stock check, 3-way match |
+| Extend without modifying core vendor code | All logic in app layer; schema is additive only |
+| SQL Server queries — joins, aggregation, CTEs | Reports page with multi-table joins, CASE, date arithmetic |
+| BIRT-style reporting with SQL datasets | Reports page shows underlying SQL beneath each dataset |
+| Workflow triggers and audit trail | `workflow_log` fires on every state transition |
+| Role-based access control | Approval actions gated by user role |
 
 ---
 
