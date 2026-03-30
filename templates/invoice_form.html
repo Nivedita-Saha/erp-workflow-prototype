@@ -1,0 +1,65 @@
+{% extends "base.html" %}
+{% block title %}Log Invoice{% endblock %}
+{% block content %}
+<div class="page-header"><div><h1 class="page-title">Log Supplier Invoice</h1>
+<p class="page-subtitle">SCREEN LOGIC: LINK TO PO · LIVE 3-WAY MATCH PREVIEW · AUTO-VALIDATION ON SAVE</p></div>
+<a href="{{ url_for('invoices') }}" class="btn btn-ghost">← Back</a></div>
+<div class="two-col">
+<div class="card"><div class="card-header"><span class="card-title">INVOICE DETAILS</span></div><div class="card-body">
+<form method="POST">
+    <div class="form-grid" style="margin-bottom:14px">
+        <div class="field"><label>INVOICE NUMBER *</label><input type="text" name="invoice_number" required placeholder="e.g. INV-2025-00441"></div>
+        <div class="field"><label>SUPPLIER *</label><select name="supplier_id" required id="supplier-sel"><option value="">— select supplier —</option>{% for s in suppliers %}<option value="{{ s.id }}">{{ s.code }} — {{ s.name }}</option>{% endfor %}</select></div>
+        <div class="field"><label>LINK TO APPROVED PO (OPTIONAL)</label><select name="po_id" id="po-sel" onchange="onPoSelect()"><option value="">— no linked PO —</option>{% for po in approved_pos %}<option value="{{ po.id }}" data-value="{{ po.total_value }}" data-supplier="{{ po.supplier_id }}">{{ po.po_number }} — {{ po.supplier_name }} (£{{ "%.2f"|format(po.total_value) }})</option>{% endfor %}</select><span class="hint">Linking triggers 3-way match validation</span></div>
+        <div class="field"><label>INVOICE AMOUNT (£) *</label><input type="number" name="amount" id="amount-input" step="0.01" min="0" required placeholder="0.00" oninput="updateMatchPreview()"></div>
+        <div class="field"><label>INVOICE DATE *</label><input type="date" name="invoice_date" required></div>
+        <div class="field"><label>DUE DATE</label><input type="date" name="due_date"></div>
+    </div>
+    <div class="form-actions"><a href="{{ url_for('invoices') }}" class="btn btn-ghost">Cancel</a><button type="submit" class="btn btn-primary">Log Invoice →</button></div>
+</form>
+</div></div>
+<div>
+<div class="card"><div class="card-header"><span class="card-title">3-WAY MATCH PREVIEW</span></div><div class="card-body">
+    <div id="no-po-msg" style="font-size:12px;color:var(--text-dim);font-family:var(--mono);">Link a PO above to preview match validation.</div>
+    <div id="match-details" style="display:none">
+        <div class="detail-row"><span class="detail-key">PO VALUE</span><span class="mono" id="po-val">—</span></div>
+        <div class="detail-row"><span class="detail-key">INVOICE AMOUNT</span><span class="mono" id="inv-val">—</span></div>
+        <div class="detail-row"><span class="detail-key">DIFFERENCE</span><span class="mono" id="diff-val">—</span></div>
+        <div class="detail-row"><span class="detail-key">TOLERANCE (2%)</span><span class="mono" id="tol-val">—</span></div>
+        <div class="detail-row"><span class="detail-key">MATCH RESULT</span><span class="mono bold" id="match-result">—</span></div>
+        <div id="match-note" style="margin-top:14px;padding:10px;border-radius:6px;font-size:11px;font-family:var(--mono);display:none"></div>
+    </div>
+</div></div>
+<div class="card"><div class="card-header"><span class="card-title">VALIDATION RULES</span></div><div class="card-body" style="font-size:11px;color:var(--text-dim);font-family:var(--mono);line-height:2">
+    <div>✓ No PO linked → status: PENDING</div>
+    <div>✓ PO linked, diff ≤ 2% → status: VALIDATED</div>
+    <div>✓ PO linked, diff > 2% → status: DISPUTED</div>
+    <div>✓ All outcomes logged to audit trail</div>
+</div></div>
+</div>
+</div>
+<script>
+let poValue = null;
+function onPoSelect() {
+    const sel = document.getElementById('po-sel');
+    const opt = sel.selectedOptions[0];
+    poValue = opt.value ? parseFloat(opt.dataset.value) : null;
+    document.getElementById('no-po-msg').style.display = poValue ? 'none' : 'block';
+    document.getElementById('match-details').style.display = poValue ? 'block' : 'none';
+    if (poValue) { document.getElementById('po-val').textContent = '£' + poValue.toFixed(2); document.getElementById('supplier-sel').value = opt.dataset.supplier; }
+    updateMatchPreview();
+}
+function updateMatchPreview() {
+    if (!poValue) return;
+    const inv = parseFloat(document.getElementById('amount-input').value) || 0;
+    const diff = Math.abs(inv - poValue); const tol = poValue * 0.02;
+    document.getElementById('inv-val').textContent = '£' + inv.toFixed(2);
+    document.getElementById('diff-val').textContent = '£' + diff.toFixed(2);
+    document.getElementById('tol-val').textContent = '£' + tol.toFixed(2);
+    const resEl = document.getElementById('match-result'); const noteEl = document.getElementById('match-note');
+    if (inv === 0) { resEl.textContent = '—'; return; }
+    if (diff <= tol) { resEl.textContent = '✓ PASS — VALIDATED'; resEl.style.color = 'var(--green)'; noteEl.style.cssText = 'margin-top:14px;padding:10px;border-radius:6px;font-size:11px;font-family:var(--mono);background:rgba(34,197,94,.08);border:1px solid rgba(34,197,94,.2);color:var(--green);display:block'; noteEl.textContent = 'Invoice will be marked VALIDATED on save.'; }
+    else { resEl.textContent = '✗ FAIL — DISPUTED'; resEl.style.color = 'var(--red)'; noteEl.style.cssText = 'margin-top:14px;padding:10px;border-radius:6px;font-size:11px;font-family:var(--mono);background:rgba(239,68,68,.08);border:1px solid rgba(239,68,68,.2);color:var(--red);display:block'; noteEl.textContent = 'Mismatch exceeds 2% tolerance. Invoice will be flagged DISPUTED.'; }
+}
+</script>
+{% endblock %}

@@ -1,0 +1,55 @@
+{% extends "base.html" %}
+{% block title %}SQL Reports{% endblock %}
+{% block content %}
+<div class="page-header"><div><h1 class="page-title">SQL Reports</h1>
+<p class="page-subtitle">BIRT-STYLE REPORTING — AGGREGATED SQL DATASETS WITH BUSINESS METRICS</p></div></div>
+<div class="report-section"><div class="report-title">PROCUREMENT SPEND BY SUPPLIER</div>
+<div class="card"><div class="table-wrap"><table>
+    <thead><tr><th>CODE</th><th>SUPPLIER</th><th class="right">PO COUNT</th><th class="right">TOTAL SPEND</th><th class="right">AVG ORDER VALUE</th><th>SPEND BAR</th></tr></thead>
+    <tbody>{% set max_spend = spend_by_supplier[0].total_spend if spend_by_supplier and spend_by_supplier[0].total_spend else 1 %}
+    {% for row in spend_by_supplier %}<tr>
+        <td class="mono amber">{{ row.code }}</td><td>{{ row.name }}</td>
+        <td class="mono right">{{ row.po_count }}</td>
+        <td class="mono right bold">£{{ "%.2f"|format(row.total_spend or 0) }}</td>
+        <td class="mono right dim">£{{ "%.2f"|format(row.avg_order_value or 0) }}</td>
+        <td style="min-width:140px">{% if row.total_spend %}{% set pct = (row.total_spend / max_spend * 100)|int %}<div style="background:var(--surface-3);border-radius:3px;height:8px;overflow:hidden"><div style="background:var(--amber);height:100%;width:{{ pct }}%"></div></div>{% else %}<span class="faint mono" style="font-size:11px">no orders</span>{% endif %}</td>
+    </tr>{% endfor %}</tbody>
+</table></div>
+<div style="padding:10px 16px;font-size:10px;color:var(--text-faint);font-family:var(--mono);border-top:1px solid var(--border)">SQL: SELECT s.name, COUNT(po.id), SUM(po.total_value), AVG(po.total_value) FROM suppliers s LEFT JOIN purchase_orders po ON po.supplier_id=s.id GROUP BY s.id ORDER BY total_spend DESC</div>
+</div></div>
+<div class="two-col">
+<div class="report-section"><div class="report-title">PO STATUS SUMMARY</div>
+<div class="card"><div class="table-wrap"><table>
+    <thead><tr><th>STATUS</th><th class="right">COUNT</th><th class="right">TOTAL VALUE</th></tr></thead>
+    <tbody>{% for row in po_summary %}<tr>
+        <td><span class="badge {% if row.status == 'PENDING_APPROVAL' %}badge-pending{% elif row.status == 'APPROVED' %}badge-approved{% elif row.status == 'REJECTED' %}badge-rejected{% elif row.status == 'DRAFT' %}badge-draft{% else %}badge-cancelled{% endif %}">{{ row.status.replace('_',' ') }}</span></td>
+        <td class="mono right bold">{{ row.count }}</td><td class="mono right">£{{ "%.2f"|format(row.total_value or 0) }}</td>
+    </tr>{% endfor %}</tbody>
+</table></div></div></div>
+<div class="report-section"><div class="report-title">INVOICE AGING</div>
+<div class="card"><div class="table-wrap"><table>
+    <thead><tr><th>INVOICE</th><th>SUPPLIER</th><th class="right">AMOUNT</th><th>STATUS</th><th class="right">DAYS OVERDUE</th></tr></thead>
+    <tbody>{% for inv in invoice_aging %}<tr>
+        <td class="mono amber">{{ inv.invoice_number }}</td><td>{{ inv.supplier_name }}</td>
+        <td class="mono right">£{{ "%.2f"|format(inv.amount) }}</td>
+        <td><span class="badge {% if inv.status == 'PENDING' %}badge-pending{% elif inv.status == 'VALIDATED' %}badge-validated{% elif inv.status == 'DISPUTED' %}badge-disputed{% elif inv.status == 'APPROVED' %}badge-approved{% endif %}">{{ inv.status }}</span></td>
+        <td class="mono right {% if inv.days_overdue and inv.days_overdue > 0 %}red{% else %}green{% endif %}">{% if inv.days_overdue is not none %}{% if inv.days_overdue > 0 %}+{{ inv.days_overdue }}d{% elif inv.days_overdue < 0 %}{{ inv.days_overdue }}d{% else %}Due today{% endif %}{% else %}—{% endif %}</td>
+    </tr>{% else %}<tr><td colspan="5" class="empty-state">No unpaid invoices.</td></tr>{% endfor %}</tbody>
+</table></div></div></div>
+</div>
+<div class="report-section"><div class="report-title">STOCK HEALTH REPORT</div>
+<div class="card"><div class="table-wrap"><table>
+    <thead><tr><th>PART NO.</th><th>DESCRIPTION</th><th>CATEGORY</th><th class="right">ON HAND</th><th class="right">RESERVED</th><th class="right">AVAILABLE</th><th class="right">REORDER PT</th><th>STATUS</th><th>SUPPLIER</th></tr></thead>
+    <tbody>{% for row in stock_health %}<tr>
+        <td class="mono amber">{{ row.part_number }}</td><td>{{ row.description }}</td><td class="dim">{{ row.category }}</td>
+        <td class="mono right">{{ row.qty_on_hand }}</td>
+        <td class="mono right {% if row.qty_reserved > 0 %}amber{% endif %}">{{ row.qty_reserved }}</td>
+        <td class="mono right bold {% if row.qty_available <= 0 %}red{% elif row.qty_available <= row.reorder_point %}amber{% else %}green{% endif %}">{{ row.qty_available }}</td>
+        <td class="mono right dim">{{ row.reorder_point }}</td>
+        <td><span class="badge {% if row.stock_status == 'OK' %}badge-ok{% elif row.stock_status == 'LOW STOCK' %}badge-low{% else %}badge-out{% endif %}">{{ row.stock_status }}</span></td>
+        <td class="dim" style="font-size:12px">{{ row.supplier_name or '—' }}</td>
+    </tr>{% endfor %}</tbody>
+</table></div>
+<div style="padding:10px 16px;font-size:10px;color:var(--text-faint);font-family:var(--mono);border-top:1px solid var(--border)">SQL: CASE WHEN (qty_on_hand - qty_reserved) &lt;= 0 THEN 'OUT OF STOCK' WHEN ... &lt;= reorder_point THEN 'LOW STOCK' ELSE 'OK' END</div>
+</div></div>
+{% endblock %}

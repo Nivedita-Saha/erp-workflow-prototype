@@ -1,0 +1,21 @@
+{% extends "base.html" %}
+{% block title %}Stock / Parts{% endblock %}
+{% block content %}
+<div class="page-header"><div><h1 class="page-title">Stock & Parts Register</h1>
+<p class="page-subtitle">BUSINESS RULE: RESERVATION BLOCKED WHEN AVAILABLE QTY = 0</p></div></div>
+<div class="card"><div class="table-wrap"><table>
+    <thead><tr><th>PART NO.</th><th>DESCRIPTION</th><th>CATEGORY</th><th>SUPPLIER</th><th class="right">ON HAND</th><th class="right">RESERVED</th><th class="right">AVAILABLE</th><th>STATUS</th><th class="right">UNIT COST</th><th>ACTION</th></tr></thead>
+    <tbody>{% for part in parts %}
+    {% set status = "OK" if part.qty_available > part.reorder_point else ("LOW" if part.qty_available > 0 else "OUT") %}
+    <tr>
+        <td class="mono amber bold">{{ part.part_number }}</td><td>{{ part.description }}</td>
+        <td class="dim">{{ part.category }}</td><td class="dim">{{ part.supplier_name or '—' }}</td>
+        <td class="mono right">{{ part.qty_on_hand }}</td>
+        <td class="mono right {% if part.qty_reserved > 0 %}amber{% endif %}">{{ part.qty_reserved }}</td>
+        <td class="mono right bold {% if part.qty_available <= 0 %}red{% elif part.qty_available <= part.reorder_point %}amber{% else %}green{% endif %}">{{ part.qty_available }}</td>
+        <td><span class="badge {% if status == 'OK' %}badge-ok{% elif status == 'LOW' %}badge-low{% else %}badge-out{% endif %}">{{ status }}</span></td>
+        <td class="mono right">£{{ "%.2f"|format(part.unit_cost) }}</td>
+        <td>{% if part.qty_available > 0 %}<a href="{{ url_for('reserve_stock', pid=part.id) }}" class="btn btn-ghost btn-sm">Reserve</a>{% else %}<span class="faint mono" style="font-size:11px">No stock</span>{% endif %}</td>
+    </tr>{% endfor %}</tbody>
+</table></div></div>
+{% endblock %}

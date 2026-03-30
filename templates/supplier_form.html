@@ -1,0 +1,20 @@
+{% extends "base.html" %}
+{% block title %}New Supplier{% endblock %}
+{% block content %}
+<div class="page-header"><div><h1 class="page-title">New Supplier</h1>
+<p class="page-subtitle">VALIDATION: UNIQUE CODE ENFORCED</p></div>
+<a href="{{ url_for('suppliers') }}" class="btn btn-ghost">← Back</a></div>
+<div style="max-width:680px"><div class="card"><div class="card-header"><span class="card-title">SUPPLIER DETAILS</span></div><div class="card-body">
+<form method="POST">
+    <div class="form-grid" style="margin-bottom:14px">
+        <div class="field"><label>SUPPLIER CODE *</label><input type="text" name="code" required placeholder="e.g. SUP005" value="{{ supplier.code or '' }}"><span class="hint">Must be unique.</span></div>
+        <div class="field"><label>COMPANY NAME *</label><input type="text" name="name" required placeholder="e.g. Acme Engineering Ltd" value="{{ supplier.name or '' }}"></div>
+        <div class="field"><label>CONTACT NAME</label><input type="text" name="contact" value="{{ supplier.contact or '' }}"></div>
+        <div class="field"><label>EMAIL</label><input type="email" name="email" value="{{ supplier.email or '' }}"></div>
+        <div class="field"><label>PHONE</label><input type="text" name="phone" value="{{ supplier.phone or '' }}"></div>
+        <div class="field"><label>LEAD TIME (DAYS)</label><input type="number" name="lead_days" min="1" value="{{ supplier.lead_days or 7 }}"></div>
+    </div>
+    <div class="form-actions"><a href="{{ url_for('suppliers') }}" class="btn btn-ghost">Cancel</a><button type="submit" class="btn btn-primary">Create Supplier →</button></div>
+</form>
+</div></div></div>
+{% endblock %}

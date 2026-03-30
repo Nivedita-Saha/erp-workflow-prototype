@@ -1,0 +1,18 @@
+{% extends "base.html" %}
+{% block title %}Invoices{% endblock %}
+{% block content %}
+<div class="page-header"><div><h1 class="page-title">Invoice Register</h1>
+<p class="page-subtitle">3-WAY MATCH VALIDATION: INVOICE → PO → GOODS RECEIPT (2% TOLERANCE)</p></div>
+<a href="{{ url_for('new_invoice') }}" class="btn btn-primary">+ Log Invoice</a></div>
+<div class="card"><div class="table-wrap"><table>
+    <thead><tr><th>INVOICE NO.</th><th>SUPPLIER</th><th>LINKED PO</th><th>INV DATE</th><th>DUE DATE</th><th class="right">AMOUNT</th><th>STATUS</th><th>VALIDATION NOTE</th><th>ACTION</th></tr></thead>
+    <tbody>{% for inv in invoices %}<tr>
+        <td class="mono amber bold">{{ inv.invoice_number }}</td><td>{{ inv.supplier_name }}</td>
+        <td class="mono dim">{{ inv.po_number or '—' }}</td><td class="mono dim">{{ inv.invoice_date }}</td>
+        <td class="mono dim">{{ inv.due_date or '—' }}</td><td class="mono right bold">£{{ "%.2f"|format(inv.amount) }}</td>
+        <td><span class="badge {% if inv.status == 'PENDING' %}badge-pending{% elif inv.status == 'VALIDATED' %}badge-validated{% elif inv.status == 'APPROVED' %}badge-approved{% elif inv.status == 'DISPUTED' %}badge-disputed{% elif inv.status == 'PAID' %}badge-paid{% endif %}">{{ inv.status }}</span></td>
+        <td style="max-width:200px;font-size:11px;color:var(--text-dim)">{{ inv.validation_note or '—' }}</td>
+        <td>{% if inv.status in ['VALIDATED','PENDING'] and user.can_approve %}<form method="POST" action="{{ url_for('approve_invoice', iid=inv.id) }}"><button type="submit" class="btn btn-success btn-sm">Approve</button></form>{% else %}<span class="faint mono" style="font-size:11px">—</span>{% endif %}</td>
+    </tr>{% else %}<tr><td colspan="9" class="empty-state">No invoices logged.</td></tr>{% endfor %}</tbody>
+</table></div></div>
+{% endblock %}

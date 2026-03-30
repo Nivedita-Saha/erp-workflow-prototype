@@ -1,0 +1,96 @@
+{% extends "base.html" %}
+{% block title %}New Purchase Order{% endblock %}
+{% block content %}
+<div class="page-header">
+    <div><h1 class="page-title">New Purchase Order</h1>
+    <p class="page-subtitle">FORM LOGIC: SUPPLIER VALIDATION · DYNAMIC LINE ITEMS · AUTO-TOTAL</p></div>
+    <a href="{{ url_for('purchase_orders') }}" class="btn btn-ghost">← Back</a>
+</div>
+<form method="POST" id="po-form">
+<div class="detail-grid">
+<div>
+    <div class="card">
+        <div class="card-header"><span class="card-title">ORDER DETAILS</span></div>
+        <div class="card-body">
+            <div class="form-grid">
+                <div class="field">
+                    <label>SUPPLIER *</label>
+                    <select name="supplier_id" required id="supplier-select">
+                        <option value="">— select active supplier —</option>
+                        {% for s in suppliers %}<option value="{{ s.id }}" data-lead="{{ s.lead_days }}">{{ s.code }} — {{ s.name }}</option>{% endfor %}
+                    </select>
+                    <span class="hint" id="lead-hint"></span>
+                </div>
+                <div class="field"><label>REQUIRED BY DATE</label><input type="date" name="required_date"></div>
+                <div class="field form-full"><label>RAISED BY</label><input type="text" value="{{ user.name }}" disabled style="opacity:.5"></div>
+            </div>
+        </div>
+    </div>
+    <div class="card">
+        <div class="card-header"><span class="card-title">LINE ITEMS</span><button type="button" class="btn btn-ghost btn-sm" onclick="addLine()">+ Add Line</button></div>
+        <div class="card-body" style="padding:0">
+            <div class="line-item-header"><span>PART</span><span>QTY</span><span>UNIT PRICE</span><span>LINE TOTAL</span><span></span></div>
+            <div id="line-items"></div>
+        </div>
+    </div>
+</div>
+<div>
+    <div class="card">
+        <div class="card-header"><span class="card-title">ORDER SUMMARY</span></div>
+        <div class="card-body">
+            <div class="detail-row"><span class="detail-key">AUTO-APPROVAL THRESHOLD</span><span class="mono">£500.00</span></div>
+            <div class="detail-row"><span class="detail-key">ORDER TOTAL</span><span class="mono bold amber" id="po-total">£0.00</span></div>
+            <div class="detail-row"><span class="detail-key">APPROVAL REQUIRED?</span><span class="mono" id="approval-status">—</span></div>
+            <div style="margin-top:16px;padding:12px;background:var(--surface-2);border-radius:4px;font-size:11px;color:var(--text-dim);font-family:var(--mono);">BUSINESS RULE: POs ≤ £500 auto-approved. POs > £500 require manager review.</div>
+        </div>
+    </div>
+    <div class="form-actions" style="justify-content:stretch;flex-direction:column;gap:8px">
+        <button type="submit" class="btn btn-primary" style="justify-content:center;padding:12px">Create Purchase Order →</button>
+        <a href="{{ url_for('purchase_orders') }}" class="btn btn-ghost" style="justify-content:center">Cancel</a>
+    </div>
+</div>
+</div>
+</form>
+<script>const PARTS = {{ parts | tojson }};</script>
+{% endblock %}
+{% block scripts %}
+<script>
+let lineCount = 0;
+function addLine() {
+    lineCount++;
+    const container = document.getElementById('line-items');
+    const div = document.createElement('div');
+    div.className = 'line-item-row';
+    div.id = 'line-' + lineCount;
+    div.innerHTML = '<div><select name="part_id[]" onchange="onPartSelect(this,' + lineCount + ')" style="font-size:12px"><option value="">— select part —</option>' + PARTS.map(p => '<option value="' + p.id + '" data-price="' + p.unit_cost + '" data-stock="' + (p.qty_on_hand - p.qty_reserved) + '">' + p.part_number + ' — ' + p.description + '</option>').join('') + '</select></div><div><input type="number" name="qty[]" id="qty-' + lineCount + '" min="1" value="1" oninput="recalcLine(' + lineCount + ')"></div><div><input type="number" name="price[]" id="price-' + lineCount + '" step="0.01" min="0" oninput="recalcLine(' + lineCount + ')" placeholder="0.00"></div><div><input type="text" id="total-' + lineCount + '" readonly value="£0.00" style="color:var(--amber);font-weight:600"></div><div><button type="button" class="remove-line" onclick="removeLine(' + lineCount + ')">×</button></div>';
+    container.appendChild(div);
+}
+function onPartSelect(sel, idx) {
+    const opt = sel.selectedOptions[0];
+    document.getElementById('price-' + idx).value = parseFloat(opt.dataset.price || 0).toFixed(2);
+    recalcLine(idx);
+}
+function recalcLine(idx) {
+    const qty = parseFloat(document.getElementById('qty-' + idx)?.value || 0);
+    const price = parseFloat(document.getElementById('price-' + idx)?.value || 0);
+    const el = document.getElementById('total-' + idx);
+    if (el) el.value = '£' + (qty * price).toFixed(2);
+    recalcTotal();
+}
+function recalcTotal() {
+    let sum = 0;
+    document.querySelectorAll('[id^="total-"]').forEach(el => { sum += parseFloat(el.value.replace('£','') || 0); });
+    document.getElementById('po-total').textContent = '£' + sum.toFixed(2);
+    const el = document.getElementById('approval-status');
+    if (sum === 0) { el.textContent = '—'; el.style.color = 'var(--text-dim)'; }
+    else if (sum <= 500) { el.textContent = 'NO — Auto-approved'; el.style.color = 'var(--green)'; }
+    else { el.textContent = 'YES — Manager review'; el.style.color = 'var(--amber)'; }
+}
+function removeLine(idx) { document.getElementById('line-' + idx)?.remove(); recalcTotal(); }
+document.getElementById('supplier-select').addEventListener('change', function() {
+    const lead = this.selectedOptions[0].dataset.lead;
+    document.getElementById('lead-hint').textContent = lead ? 'Lead time: ' + lead + ' working days' : '';
+});
+addLine();
+</script>
+{% endblock %}

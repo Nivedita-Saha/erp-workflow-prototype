@@ -1,0 +1,17 @@
+{% extends "base.html" %}
+{% block title %}Suppliers{% endblock %}
+{% block content %}
+<div class="page-header"><div><h1 class="page-title">Supplier Register</h1>
+<p class="page-subtitle">SUSPENDED SUPPLIERS BLOCKED FROM NEW PURCHASE ORDERS</p></div>
+<a href="{{ url_for('new_supplier') }}" class="btn btn-primary">+ New Supplier</a></div>
+<div class="card"><div class="table-wrap"><table>
+    <thead><tr><th>CODE</th><th>NAME</th><th>CONTACT</th><th>EMAIL</th><th>PHONE</th><th class="right">LEAD DAYS</th><th>STATUS</th><th>ACTION</th></tr></thead>
+    <tbody>{% for s in suppliers %}<tr>
+        <td class="mono amber bold">{{ s.code }}</td><td class="bold">{{ s.name }}</td>
+        <td class="dim">{{ s.contact or '—' }}</td><td class="mono dim" style="font-size:12px">{{ s.email or '—' }}</td>
+        <td class="mono dim">{{ s.phone or '—' }}</td><td class="mono right">{{ s.lead_days }}</td>
+        <td><span class="badge {% if s.status == 'ACTIVE' %}badge-active{% elif s.status == 'SUSPENDED' %}badge-suspended{% else %}badge-pending{% endif %}">{{ s.status }}</span></td>
+        <td><form method="POST" action="{{ url_for('toggle_supplier', sid=s.id) }}" onsubmit="return confirm('Toggle status?')"><button type="submit" class="btn btn-ghost btn-sm">{% if s.status == 'ACTIVE' %}Suspend{% else %}Reactivate{% endif %}</button></form></td>
+    </tr>{% endfor %}</tbody>
+</table></div></div>
+{% endblock %}

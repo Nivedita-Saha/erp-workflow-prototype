@@ -1,0 +1,75 @@
+{% extends "base.html" %}
+{% block title %}{{ po.po_number }}{% endblock %}
+{% block content %}
+<div class="page-header">
+    <div><h1 class="page-title">{{ po.po_number }}</h1>
+    <p class="page-subtitle">SUPPLIER: {{ po.supplier_name }} · RAISED BY {{ po.raised_by }} · {{ po.raised_date }}</p></div>
+    <div class="flex gap-8 items-center">
+        <span class="badge {% if po.status == 'PENDING_APPROVAL' %}badge-pending{% elif po.status == 'APPROVED' %}badge-approved{% elif po.status == 'REJECTED' %}badge-rejected{% elif po.status == 'DRAFT' %}badge-draft{% elif po.status == 'SENT' %}badge-sent{% elif po.status == 'RECEIVED' %}badge-received{% else %}badge-cancelled{% endif %}" style="font-size:13px;padding:4px 14px">{{ po.status.replace('_',' ') }}</span>
+        <a href="{{ url_for('purchase_orders') }}" class="btn btn-ghost">← Back</a>
+    </div>
+</div>
+<div class="detail-grid">
+<div>
+    <div class="card">
+        <div class="card-header"><span class="card-title">ORDER INFORMATION</span></div>
+        <div class="card-body">
+            <div class="detail-row"><span class="detail-key">PO NUMBER</span><span class="mono amber">{{ po.po_number }}</span></div>
+            <div class="detail-row"><span class="detail-key">SUPPLIER</span><span>{{ po.supplier_name }}</span></div>
+            <div class="detail-row"><span class="detail-key">LEAD TIME</span><span class="mono">{{ po.lead_days }} working days</span></div>
+            <div class="detail-row"><span class="detail-key">RAISED BY</span><span>{{ po.raised_by }}</span></div>
+            <div class="detail-row"><span class="detail-key">RAISED DATE</span><span class="mono">{{ po.raised_date }}</span></div>
+            <div class="detail-row"><span class="detail-key">REQUIRED DATE</span><span class="mono">{{ po.required_date or '—' }}</span></div>
+            <div class="detail-row"><span class="detail-key">ORDER TOTAL</span><span class="mono bold amber">£{{ "%.2f"|format(po.total_value or 0) }}</span></div>
+            {% if po.approved_by %}<div class="detail-row"><span class="detail-key">APPROVED BY</span><span class="mono green">{{ po.approved_by }}</span></div>{% endif %}
+            {% if po.approval_note %}<div class="detail-row"><span class="detail-key">APPROVAL NOTE</span><span class="dim">{{ po.approval_note }}</span></div>{% endif %}
+        </div>
+    </div>
+    <div class="card">
+        <div class="card-header"><span class="card-title">LINE ITEMS</span></div>
+        <div class="table-wrap"><table>
+            <thead><tr><th>PART NO.</th><th>DESCRIPTION</th><th>UOM</th><th class="right">QTY</th><th class="right">UNIT PRICE</th><th class="right">LINE TOTAL</th></tr></thead>
+            <tbody>{% for line in lines %}<tr>
+                <td class="mono amber">{{ line.part_number }}</td><td>{{ line.description }}</td>
+                <td class="mono dim">{{ line.unit_of_measure }}</td>
+                <td class="mono right">{{ line.qty_ordered }}</td>
+                <td class="mono right">£{{ "%.2f"|format(line.unit_price) }}</td>
+                <td class="mono right bold">£{{ "%.2f"|format(line.line_total) }}</td>
+            </tr>{% endfor %}</tbody>
+            <tfoot><tr><td colspan="5" class="right bold mono" style="padding:10px 12px;border-top:1px solid var(--border)">ORDER TOTAL</td><td class="mono bold amber right" style="padding:10px 12px;border-top:1px solid var(--border)">£{{ "%.2f"|format(po.total_value or 0) }}</td></tr></tfoot>
+        </table></div>
+    </div>
+    {% if po.status == 'DRAFT' %}
+    <div class="card"><div class="card-header"><span class="card-title">WORKFLOW ACTION</span></div>
+        <div class="card-body">
+            <p class="dim" style="font-size:13px;margin-bottom:12px">Submit this PO. Orders ≤ £{{ "%.2f"|format(threshold) }} auto-approve; above routes to manager.</p>
+            <form method="POST" action="{{ url_for('submit_po', po_id=po.id) }}"><button type="submit" class="btn btn-primary">Submit for Approval →</button></form>
+        </div>
+    </div>{% endif %}
+    {% if po.status == 'PENDING_APPROVAL' and user.can_approve %}
+    <div class="approval-panel"><h4>⚠ MANAGER APPROVAL REQUIRED</h4>
+        <p class="dim" style="font-size:12px;margin-bottom:14px">Order £{{ "%.2f"|format(po.total_value) }} exceeds £{{ "%.2f"|format(threshold) }} threshold.</p>
+        <form method="POST" action="{{ url_for('approve_po', po_id=po.id) }}">
+            <div class="field" style="margin-bottom:12px"><label>NOTE (required for rejection)</label><textarea name="note" rows="2" placeholder="Add approval note or rejection reason..."></textarea></div>
+            <div class="flex gap-8">
+                <button type="submit" name="action" value="approve" class="btn btn-success">✓ Approve</button>
+                <button type="submit" name="action" value="reject" class="btn btn-danger">✗ Reject</button>
+            </div>
+        </form>
+    </div>{% endif %}
+    {% if po.status == 'PENDING_APPROVAL' and not user.can_approve %}
+    <div style="padding:14px;background:var(--surface-2);border-radius:6px;border:1px solid var(--border);font-size:12px;color:var(--text-dim);font-family:var(--mono);">AWAITING MANAGER APPROVAL — You do not have permission to approve purchase orders.</div>
+    {% endif %}
+</div>
+<div>
+    <div class="card"><div class="card-header"><span class="card-title">WORKFLOW AUDIT TRAIL</span></div>
+        <div class="card-body">{% if log %}<ul class="workflow-log">{% for entry in log %}<li class="log-entry">
+            <div class="log-action">{{ entry.action }}</div>
+            <div class="log-meta">{{ entry.performed_by }}</div>
+            {% if entry.note %}<div class="log-note dim">{{ entry.note }}</div>{% endif %}
+            <div class="faint mono" style="font-size:10px;margin-top:2px">{{ entry.logged_at }}</div>
+        </li>{% endfor %}</ul>{% else %}<div class="empty-state">No log entries yet</div>{% endif %}</div>
+    </div>
+</div>
+</div>
+{% endblock %}

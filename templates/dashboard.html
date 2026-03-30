@@ -1,0 +1,56 @@
+{% extends "base.html" %}
+{% block title %}Dashboard{% endblock %}
+{% block content %}
+<div class="page-header">
+    <div>
+        <h1 class="page-title">Dashboard</h1>
+        <p class="page-subtitle">ERP WORKFLOW EXTENSION PROTOTYPE — MANUFACTURING MODULE</p>
+    </div>
+</div>
+<div class="stats-grid">
+    <div class="stat-card amber"><div class="stat-value">{{ stats.po_pending }}</div><div class="stat-label">POs Awaiting Approval</div></div>
+    <div class="stat-card blue"><div class="stat-value">{{ stats.po_draft }}</div><div class="stat-label">Draft Purchase Orders</div></div>
+    <div class="stat-card red"><div class="stat-value">{{ stats.low_stock }}</div><div class="stat-label">Low / Out of Stock Parts</div></div>
+    <div class="stat-card blue"><div class="stat-value">{{ stats.inv_pending }}</div><div class="stat-label">Invoices Pending</div></div>
+    <div class="stat-card red"><div class="stat-value">{{ stats.inv_disputed }}</div><div class="stat-label">Disputed Invoices</div></div>
+    <div class="stat-card green"><div class="stat-value">{{ stats.reservations }}</div><div class="stat-label">Active Reservations</div></div>
+</div>
+<div class="two-col">
+    <div class="card">
+        <div class="card-header"><span class="card-title">⚠ PENDING PO APPROVALS</span><a href="{{ url_for('purchase_orders') }}" class="btn btn-ghost btn-sm">View All</a></div>
+        {% if pending_pos %}
+        <div class="table-wrap"><table>
+            <thead><tr><th>PO NUMBER</th><th>SUPPLIER</th><th>VALUE</th><th>ACTION</th></tr></thead>
+            <tbody>{% for po in pending_pos %}<tr>
+                <td class="mono amber">{{ po.po_number }}</td>
+                <td>{{ po.supplier_name }}</td>
+                <td class="mono bold">£{{ "%.2f"|format(po.total_value) }}</td>
+                <td><a href="{{ url_for('po_detail', po_id=po.id) }}" class="btn btn-ghost btn-sm">Review →</a></td>
+            </tr>{% endfor %}</tbody>
+        </table></div>
+        {% else %}<div class="empty-state">No pending approvals</div>{% endif %}
+    </div>
+    <div class="card">
+        <div class="card-header"><span class="card-title">◈ WORKFLOW AUDIT LOG</span></div>
+        <div class="card-body">
+            {% if recent_log %}
+            <ul class="workflow-log">{% for entry in recent_log %}<li class="log-entry">
+                <div class="log-action">{{ entry.action }}</div>
+                <div class="log-meta">{{ entry.entity_type }} #{{ entry.entity_id }} · {{ entry.performed_by }}</div>
+                {% if entry.note %}<div class="log-note dim">{{ entry.note }}</div>{% endif %}
+                <div class="faint mono" style="font-size:10px;margin-top:2px">{{ entry.logged_at }}</div>
+            </li>{% endfor %}</ul>
+            {% else %}<div class="empty-state">No activity yet</div>{% endif %}
+        </div>
+    </div>
+</div>
+<div class="card">
+    <div class="card-header"><span class="card-title">QUICK ACTIONS</span></div>
+    <div class="card-body flex gap-8">
+        <a href="{{ url_for('new_po') }}" class="btn btn-primary">+ New Purchase Order</a>
+        <a href="{{ url_for('new_invoice') }}" class="btn btn-ghost">+ Log Invoice</a>
+        <a href="{{ url_for('stock') }}" class="btn btn-ghost">Reserve Stock</a>
+        <a href="{{ url_for('reports') }}" class="btn btn-ghost">View Reports</a>
+    </div>
+</div>
+{% endblock %}

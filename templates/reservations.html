@@ -1,0 +1,16 @@
+{% extends "base.html" %}
+{% block title %}Reservations{% endblock %}
+{% block content %}
+<div class="page-header"><div><h1 class="page-title">Stock Reservations</h1>
+<p class="page-subtitle">ACTIVE RESERVATIONS HOLD STOCK AGAINST AVAILABLE QTY</p></div></div>
+<div class="card"><div class="table-wrap"><table>
+    <thead><tr><th>REF</th><th>PART NO.</th><th>DESCRIPTION</th><th class="right">QTY</th><th>RESERVED FOR</th><th>RESERVED BY</th><th>DATE</th><th>STATUS</th><th>ACTION</th></tr></thead>
+    <tbody>{% for r in reservations %}<tr>
+        <td class="mono dim">#{{ r.id }}</td><td class="mono amber">{{ r.part_number }}</td><td>{{ r.description }}</td>
+        <td class="mono right bold">{{ r.qty_reserved }}</td><td class="mono">{{ r.reserved_for }}</td>
+        <td class="dim">{{ r.reserved_by }}</td><td class="mono dim">{{ r.reservation_date }}</td>
+        <td><span class="badge {% if r.status == 'ACTIVE' %}badge-active{% elif r.status == 'FULFILLED' %}badge-fulfilled{% else %}badge-cancelled{% endif %}">{{ r.status }}</span></td>
+        <td>{% if r.status == 'ACTIVE' %}<form method="POST" action="{{ url_for('cancel_reservation', rid=r.id) }}" onsubmit="return confirm('Cancel and release stock?')"><button type="submit" class="btn btn-danger btn-sm">Release</button></form>{% else %}<span class="faint mono" style="font-size:11px">—</span>{% endif %}</td>
+    </tr>{% else %}<tr><td colspan="9" class="empty-state">No reservations found.</td></tr>{% endfor %}</tbody>
+</table></div></div>
+{% endblock %}

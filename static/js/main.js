@@ -1,0 +1,1 @@
+document.addEventListener('DOMContentLoaded', () => { document.querySelectorAll('.flash').forEach(f => { setTimeout(() => { f.style.opacity='0'; f.style.transition='opacity .4s'; setTimeout(()=>f.remove(),400); }, 5000); }); });

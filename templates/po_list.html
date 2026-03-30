@@ -1,0 +1,22 @@
+{% extends "base.html" %}
+{% block title %}Purchase Orders{% endblock %}
+{% block content %}
+<div class="page-header">
+    <div><h1 class="page-title">Purchase Orders</h1>
+    <p class="page-subtitle">WORKFLOW: DRAFT → PENDING APPROVAL → APPROVED / REJECTED → SENT → RECEIVED</p></div>
+    <a href="{{ url_for('new_po') }}" class="btn btn-primary">+ New PO</a>
+</div>
+<div class="card"><div class="table-wrap"><table>
+    <thead><tr><th>PO NUMBER</th><th>SUPPLIER</th><th>RAISED BY</th><th>RAISED DATE</th><th>REQUIRED DATE</th><th>TOTAL VALUE</th><th>STATUS</th><th>ACTION</th></tr></thead>
+    <tbody>{% for po in pos %}<tr>
+        <td class="mono amber bold">{{ po.po_number }}</td>
+        <td>{{ po.supplier_name }}</td>
+        <td>{{ po.raised_by }}</td>
+        <td class="mono dim">{{ po.raised_date }}</td>
+        <td class="mono dim">{{ po.required_date or "—" }}</td>
+        <td class="mono bold">£{{ "%.2f"|format(po.total_value or 0) }}</td>
+        <td><span class="badge {% if po.status == "PENDING_APPROVAL" %}badge-pending{% elif po.status == "APPROVED" %}badge-approved{% elif po.status == "REJECTED" %}badge-rejected{% elif po.status == "DRAFT" %}badge-draft{% elif po.status == "SENT" %}badge-sent{% elif po.status == "RECEIVED" %}badge-received{% else %}badge-cancelled{% endif %}">{{ po.status.replace("_"," ") }}</span></td>
+        <td><a href="{{ url_for('po_detail', po_id=po.id) }}" class="btn btn-ghost btn-sm">Open →</a></td>
+    </tr>{% else %}<tr><td colspan="8" class="empty-state">No purchase orders yet.</td></tr>{% endfor %}</tbody>
+</table></div></div>
+{% endblock %}
